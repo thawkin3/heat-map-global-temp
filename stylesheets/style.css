@@ -1,0 +1,97 @@
+html, body {
+	background: #ddd;
+	color: #000;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+	font-size: 16px;
+	text-align: center;
+}
+p {
+    margin: 0;
+}
+.mainContainer {
+    background-color: #fff;
+    margin: 20px auto;
+    padding: 0px;
+    width: 1050px;
+    height: 620px;
+    box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.32), 0 3px 12px 0 rgba(0, 0, 0, 0.24);
+    position: relative;
+}
+
+.title {
+    font-size: 2em;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    color: #46b0b4;
+    text-align: center;
+    padding: 15px 0px 0px 0px;
+}
+.subtitle {
+    font-size: 1.2em;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    color: #46b0b4;
+    text-align: center;
+    padding: 0px 0px 15px 0px;
+}
+
+.errorMessage {
+	display: none;
+	margin: 20px auto;
+}
+
+.chart {
+    margin: 0px auto;
+    padding: 0px;
+    background-color: #fff;
+}
+.chart .mouseover {
+    stroke: #8ae4cb;
+}
+.chart .mouseoff {
+    stroke: none;
+}
+.chart text {
+    fill: black;
+    font: 10px sans-serif;
+    text-anchor: end;
+}
+.chart text.bikerLabel {
+    text-anchor: start;
+}
+.chart .axis text, .chart .axis.x text.xLabel {
+    font: 15px sans-serif;
+}
+.chart .axis.x text {
+    font: 10px sans-serif;
+}
+.chart .axis path,
+.chart .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.tooltip {
+    position: absolute;
+    top: 300px;
+    right: 100px;
+    text-align: center;
+    width: 300px;
+    height: auto;
+    padding: 20px;
+    font-size: 1em;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    border-radius: 5px;
+    background: #666;
+    color: #fff;
+    opacity: 0;
+}
+.tooltip .amount {
+    font-size: 1em;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    font-weight: bold;
+}
+.tooltip .year {
+    font-size: 0.8em;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    font-weight: normal;
+}
