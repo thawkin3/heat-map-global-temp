@@ -5,8 +5,9 @@ $(document).ready(function() {
 	
 	// HELPER VARIABLES
 	var formatYear = d3.format("d");
-	var month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+	var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 	var colors = ["#5e4fa2", "#3288bd", "#66c2a5", "#abdda4", "#e6f598", "#ffffbf", "#fee08b", "#fdae61", "#f46d43", "#d53e4f", "#9e0142"];
+	var bucketsLength = colors.length;
 
 	// GET THE GDP JSON DATA, THEN BUILD THE BAR CHART TO VISUALIZE IT
 	d3.json(url, function(error, jsonData) {
@@ -28,11 +29,12 @@ $(document).ready(function() {
 			top: 5,
 			right: 20,
 			bottom: 50,
-			left: 75
+			left: 100
 		};
 		var width = 1000 - margin.left - margin.right;
 		var height = 500 - margin.top - margin.bottom;
-		var barWidth = Math.ceil(width / data.length);
+		var barWidth = Math.ceil(width / (2015-1753));
+		var barHeight = Math.ceil(height / 12);
 
 		// X SCALE
 		// TAKE THE MIN AND THE MAX FINISH TIMES AND FIT IT TO THE WIDTH WE SET EARLIER
@@ -46,8 +48,8 @@ $(document).ready(function() {
 		// SET THE DOMAIN TO GO FROM 1 TO 36 SINCE WE HAVE 35 DATA POINTS AND WANT A LITTLE EXTRA SPACE AT THE BOTTOM
 		// AND FIT IT TO OUR HEIGHT WE SET EARLIER
 		// BUT IT'S FLIPPED BECAUSE WE GO FROM TOP-LEFT TO BOTTOM-RIGHT WITH SVG
-		var y = d3.scale.linear()
-			.domain([1,36])
+		var y = d3.time.scale()
+    		.domain([new Date(2012, 0, 1), new Date(2012, 11, 31)])
 			.range([0, height]);
 
 		// X-AXIS
@@ -63,9 +65,7 @@ $(document).ready(function() {
 		var yAxis = d3.svg.axis()
 			.scale(y)
 			.orient("left")
-			// .ticks(7, "")
 			.ticks(d3.time.months)
-		    .tickSize(16, 0)
 		    .tickFormat(d3.time.format("%B"));
 
 		// TOOLTIP, CURRENTLY EMPTY AND HIDDEN
@@ -82,6 +82,7 @@ $(document).ready(function() {
 
 		// APPEND THE X-AXIS
 		// HAVE IT START IN THE BOTTOM-LEFT CORNER
+		// ALSO APPEND A LABEL AND ANCHOR IT IN THE MIDDLE
 		chart.append("g")
 			.attr("class", "x axis")
 			.attr("transform", "translate(0," + height + ")")
@@ -94,9 +95,8 @@ $(document).ready(function() {
 			.style("text-anchor", "middle")
 			.text("Year");
 
-
 		// APPEND THE Y-AXIS
-		// ALSO APPEND A LABEL FOR THE Y-AXIS, ROTATE IT 90 DEGREES, AND ANCHOR IT TO THE END
+		// ALSO APPEND A LABEL FOR THE Y-AXIS AND ROTATE IT 90 DEGREES AND ANCHOR IT IN THE MIDDLE
 		chart.append("g")
 			.attr("class", "y axis")
 			.call(yAxis)
@@ -108,91 +108,101 @@ $(document).ready(function() {
 			.style("text-anchor", "middle")
 			.text("Month");
 
+		// SHIFT THE MONTH LABELS DOWN TO BE IN THE MIDDLE OF EACH TICK
+		var yTicks = d3.select(".y.axis").selectAll(".tick").selectAll("text")
+			.attr("dy", "1.6em");
+
+		// FIND THE MIN AND MAX OF THE TEMPERATURE VARIANCE
+		var tempVariance = [];
+		for (var i = 0; i < data.length; i++) {
+			tempVariance.push(data[i].variance);
+		}
+		var tempLow = d3.min(tempVariance) + baseTemperature;
+		var tempHigh = d3.max(tempVariance) + baseTemperature;
+		var tempVarianceRange = tempHigh - tempLow;
+		
+		// CREATE OUR COLOR SCHEME
+		var bucketsBreakpoints = [];
+		for (var i = 0; i < bucketsLength; i++) {
+			if (i == 0) {
+				bucketsBreakpoints.push(parseFloat(tempLow.toFixed(1)));
+			} else {
+				bucketsBreakpoints.push(parseFloat(((i * tempVarianceRange/bucketsLength) + tempLow).toFixed(1)));
+			}
+		}
+		bucketsBreakpoints.push(parseFloat(tempHigh.toFixed(1)));
+
+		console.log(tempLow);
+		console.log(tempHigh);
+		console.log(tempVarianceRange);
+		console.log(bucketsBreakpoints);
+
+
 		// CREATE THE BARS THAT MAKE UP OUR BAR CHART
 		// GO THROUGH EACH DATA POINT
-		// CREATE A CIRCLE FOR IT
-		// SET THE CX COORDINATE FOR IT USING THE TIME IN SECONDS
-		// SET THE CY COORDINATE FOR IT USING THE RANKING
-		// SET ALL THE RADII TO BE THE SAME SIZE
-		// SET THE COLOR OF THE CIRCLE BASED ON IF THERE WAS A DOPING ALLEGATION OR NOT
-		// FINALLY, SET THE MOUSEOVER/MOUSEOUT EFFECTS FOR THE TOOLTIP, CHANGING THE CONTENT BASED ON THE SELECTED DATA POINT
-		chart.selectAll(".circle")
+		// CREATE A RECTANGLE FOR IT
+		// SET THE X COORDINATE FOR IT USING THE YEAR (JUST A NUMBER, NOT REALLY A DATE)
+		// SET THE Y COORDINATE FOR IT USING THE MONTH (ACTUALLY A DATE, AND USING 2012 AS AN ARBITRARY YEAR BECAUSE WE ONLY HAVE ONE YEAR OF MONTHS)
+		// SET THE COLOR BASED ON THE VALUE OF THE VARIATION
+		// SET THE HEIGHT OF THE BAR USING THE EQUALLY DIVIDED HEIGHTS WE CALCULATED EARLIER
+		// SET THE WIDTH OF THE BAR USING THE EQUALLY DIVIDED WIDTHS WE CALCULATED EARLIER
+		// FINALLY, SET THE MOUSEOVER/MOUSEOUT EFFECTS FOR THE TOOLTIP, SETTING THE TOOLTIP CONTENT AND POSITION BASED ON THE BAR HOVERED OVER
+		chart.selectAll(".bar")
 			.data(data)
-			.enter()
-			.append("circle")
-			.attr("class", "circle")
-			.attr("cx", function(d) {
-				return x(d.Seconds);
+			.enter().append("rect")
+			.attr("class", "bar")
+			.attr("x", function(d) {
+				return x(d.year);
 			})
-			.attr("cy", function(d) {
-				return y(d.Place);
+			.attr("y", function(d) {
+				return y(new Date(2012, d.month-1)) - 2;
 			})
-			.attr("r", 5)
-			.attr("fill", function(d) {
-				if (d.Doping == "") {
-					return "#35de1e";
-				} else {
-					return "#de1e1e";
+			.style("fill", function (d) {
+				for (var i = 0; i < colors.length; i++) {
+					if (d.variance + baseTemperature > bucketsBreakpoints[i]) {
+						continue;
+					} else {
+						return colors[i];
+					}
 				}
+				return colors[colors.length-1];
 			})
+			.attr("height", barHeight)
+			.attr("width", barWidth)
 			.on("mouseover", function(d) {
-				var circleDataPoint = d3.select(this);
-				circleDataPoint.attr("class", "mouseover");
+				var rect = d3.select(this);
+				rect.attr("class", "mouseover");
 				tooltip.transition()
 					.duration(200)
 					.style("opacity", 0.9);
-				if (d.Doping == "") {
-					d.Doping = "No doping allegations";
-				}
-				tooltip.html("<p><strong>" + d.Name + " (" + d.Nationality + ")</strong></p>" + 
-					"<p>Year: " + d.Year + ", Time: " + d.Time + "</p>" +
-					"<p>&nbsp;</p>" + 
-					"<p>" + d.Doping + "</p>")
+				var temperature = ((d.variance + baseTemperature) * (9/5)) + 32;
+				var month = months[d.month-1];
+				tooltip.html("<span class='date'>" + d.year + " - " + month + "</span><br><span class='temperature'>" + temperature.toFixed(2) + "&deg; F</span>")
+					.style("left", (d3.event.pageX - 180) + "px")
+        			.style("top", (d3.event.pageY - 120) + "px");
 			})
 			.on("mouseout", function() {
-				var circleDataPoint = d3.select(this);
-				circleDataPoint.attr("class", "mouseoff");
+				var rect = d3.select(this);
+				rect.attr("class", "mouseoff");
 				tooltip.transition()
 					.duration(500)
 					.style("opacity", 0);
 			});
 
-		// BIKER NAME LABELS
-		// ADD THESE NEXT TO EACH DATA POINT
-		chart.selectAll(".bikerLabel")
-			.data(data)
-			.enter()
-			.append("text")
-			.attr("class", "bikerLabel")
-			.text(function(d) {
-				return d.Name;
-			})
-			.attr("x", function(d) {
-				return x(d.Seconds);
-			})
-			.attr("y", function(d) {
-				return y(d.Place);
-			})
-			.attr("dx", "10px")
-			.attr("dy", "4px")
-			.attr("text-anchor", "start")
-			.on("mouseover", function(d) {
-				tooltip.transition()
-					.duration(200)
-					.style("opacity", 0.9);
-				if (d.Doping == "") {
-					d.Doping = "No doping allegations";
-				}
-				tooltip.html("<p><strong>" + d.Name + " (" + d.Nationality + ")</strong></p>" + 
-					"<p>Year: " + d.Year + ", Time: " + d.Time + "</p>" +
-					"<p>&nbsp;</p>" + 
-					"<p>" + d.Doping + "</p>")
-			})
-			.on("mouseout", function() {
-				tooltip.transition()
-					.duration(500)
-					.style("opacity", 0);
-			});
+		// ADD LEGEND TO BOTTOM OF CHART
+		$(".legendContainer").prepend("<div class='legendHeader'>Temperature Bands (&deg;F)</div>");
+		$(".legendContainer").append("<div class='legendLabels'></div>");
+		for (var i = 0; i < colors.length; i++) {
+			$(".legend").append("<div class='colorBucket' style='background: " + colors[i] + ";'></div>");
+			var tempFahrenheit = ((bucketsBreakpoints[i] * (9/5)) + 32).toFixed(1);
+			$(".legendLabels").append("<div class='colorBucket'>" + tempFahrenheit + "</div>");
+		}
+		var tempFahrenheit = ((bucketsBreakpoints[bucketsBreakpoints.length-1] * (9/5)) + 32).toFixed(1);
+		$(".legendLabels").append("<div class='colorBucket' style='position: absolute;'>" + tempFahrenheit + "</div>");
+				// .attr("class", "colorBucket")
+				// .attr("width: 40px")
+				// .attr("height: 40px")
+				// .attr("background", function (d) { return d; });
 
 	});
 
